@@ -108,7 +108,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col">
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col hover:shadow-md transition">
                     <div class="flex items-center gap-4 mb-4">
                         <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -132,6 +132,13 @@
                     <button onclick="openChecklist()" class="mt-auto w-full bg-slate-800 text-white font-medium py-3 rounded-lg hover:bg-slate-900 transition">
                         Open Checklist
                     </button>
+                </div>
+                
+                 <div class="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-6 flex items-center justify-center opacity-70">
+                    <div class="text-center">
+                         <p class="font-bold text-slate-500">Layout & Design</p>
+                         <p class="text-xs text-slate-400">Coming Soon</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -188,7 +195,7 @@
 
     <script>
         // CONFIG
-        const DB_KEY = 'hostcode_sop_db_v3';
+        const DB_KEY = 'hostcode_sop_db_v4';
         const WP_ITEMS = [
             "Clean Install: Verify WP version", "Site Title & Tagline", "Timezone & Date Format", 
             "Permalinks to 'Post Name'", "Delete 'Hello World'", "Delete Sample Page", 
@@ -243,17 +250,13 @@
             document.getElementById('nav-avatar').innerText = state.user.charAt(0).toUpperCase();
         }
 
-        // ROUTER - THE CRITICAL FIX IS HERE
+        // ROUTER
         function router(viewName) {
-            // Hide all views
             ['dashboard', 'create', 'modules', 'checklist'].forEach(v => {
                 document.getElementById('view-' + v).classList.add('hidden');
             });
-
-            // Show target
             document.getElementById('view-' + viewName).classList.remove('hidden');
 
-            // CRITICAL: Force re-render if dashboard is selected
             if (viewName === 'dashboard') {
                 renderDashboard();
             }
@@ -277,22 +280,39 @@
                 const percent = Math.round((done / WP_ITEMS.length) * 100);
 
                 const card = document.createElement('div');
-                card.className = "bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col h-full";
-                card.onclick = () => openProject(p.id);
+                card.className = "bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col h-full relative group";
                 
+                // Card HTML
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="h-10 w-10 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-bold text-sm">WP</div>
-                        <span class="text-xs font-bold px-2 py-1 rounded ${percent === 100 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}">${percent}% Done</span>
+                    <div onclick="openProject(${p.id})">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="h-10 w-10 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-bold text-sm">WP</div>
+                            <span class="text-xs font-bold px-2 py-1 rounded ${percent === 100 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}">${percent}% Done</span>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 mb-1 truncate pr-8">${p.name}</h3>
+                        <p class="text-sm text-slate-400 mb-4 truncate">${p.url}</p>
+                        <div class="mt-auto w-full bg-slate-100 rounded-full h-1.5">
+                            <div class="bg-indigo-600 h-1.5 rounded-full" style="width: ${percent}%"></div>
+                        </div>
                     </div>
-                    <h3 class="font-bold text-lg text-slate-800 mb-1 truncate">${p.name}</h3>
-                    <p class="text-sm text-slate-400 mb-4 truncate">${p.url}</p>
-                    <div class="mt-auto w-full bg-slate-100 rounded-full h-1.5">
-                        <div class="bg-indigo-600 h-1.5 rounded-full" style="width: ${percent}%"></div>
-                    </div>
+                    
+                    <button onclick="deleteProject(event, ${p.id})" class="absolute top-4 right-4 text-slate-300 hover:text-red-500 transition p-1 rounded-full hover:bg-red-50" title="Delete Project">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
                 `;
                 grid.appendChild(card);
             });
+        }
+
+        // --- NEW DELETE FUNCTION ---
+        function deleteProject(e, id) {
+            e.stopPropagation(); // Stop the card click event
+            if(!confirm("Are you sure you want to delete this project? This action cannot be undone.")) return;
+
+            // Remove from array
+            state.projects = state.projects.filter(p => p.id !== id);
+            save();
+            renderDashboard(); // Refresh UI
         }
 
         // CREATE PROJECT
@@ -312,7 +332,6 @@
             state.projects.push(newP);
             save();
 
-            // Clear inputs
             document.getElementById('new-name').value = '';
             document.getElementById('new-url').value = '';
 
@@ -328,7 +347,6 @@
             document.getElementById('mod-url').href = p.url;
             document.getElementById('mod-date').innerText = p.created;
 
-            // Update Stats
             const done = p.modules.wp.filter(Boolean).length;
             const percent = Math.round((done / WP_ITEMS.length) * 100);
             document.getElementById('card-percent').innerText = percent + "%";
@@ -338,7 +356,7 @@
         }
 
         function backToProject() {
-            openProject(activeId); // Re-opens module view and refreshes stats
+            openProject(activeId); 
         }
 
         // CHECKLIST
@@ -362,7 +380,7 @@
                 div.onclick = () => {
                     p.modules.wp[i] = !p.modules.wp[i];
                     save();
-                    renderChecklist(); // Re-render to update UI immediately
+                    renderChecklist(); 
                 };
 
                 div.innerHTML = `
